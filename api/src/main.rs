@@ -15,7 +15,7 @@ fn index() -> &'static str {
 fn rocket() -> _ {
     rocket::build()
         .mount("/", routes![index])
-        .mount("/api/steam/market", routes![routes::steam::market::ping])
+        .mount("/api/steam/market", routes![routes::steam::market::top])
 }
 
 
