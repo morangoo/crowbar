@@ -9,6 +9,12 @@ Cargo.lock
 # VS Code
 .vscode/
 
+# Documentation (Vitepress/Node.js)
+documentation/node_modules/
+documentation/.vitepress/dist/
+documentation/package-lock.json
+documentation/.vitepress/cache/
+
 # Backup & Misc
 *.log
 *.tmp
