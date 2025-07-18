@@ -28,7 +28,12 @@ export default defineConfig({
     ],
 
     socialLinks: [
+<<<<<<< HEAD
       { icon: 'github', link: 'https://github.com/morangoo/valve' }
+=======
+      { icon: 'github', link: 'https://github.com/morangoo/valve' },
+      { icon: 'discord', link: '' }
+>>>>>>> dev
     ]
   }
 })
