@@ -3,8 +3,8 @@
 layout: home
 
 hero:
-  name: "Valve Community API"
-  text: "API Documentation"
+  name: "Crowbar API"
+  text: "Documentation"
   tagline: Let steam flow!
   actions:
     - theme: brand

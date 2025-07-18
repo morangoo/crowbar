@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://i.imgur.com/rN2SIk0.png" width="220px">
+  <img src="https://d2t1xqejof9utc.cloudfront.net/screenshots/pics/9299f2a9fae4fc35c4b709be2380d62d/large.png" width="220px">
 </p>
 
-<h1 align="center">Valve</h1>
+<h1 align="center">Crowbar</h1>
 
 <p align="center">
   A community-maintained API for accessing and integrating with Steam.<br>

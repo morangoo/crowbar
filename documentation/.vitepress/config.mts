@@ -8,7 +8,7 @@ export default defineConfig({
       dark: "catppuccin-mocha",
     },
   },
-  title: "Valve Community API",
+  title: "Crowbar API",
   description: "API Documentation",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
@@ -28,7 +28,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/morangoo/valve' },
+      { icon: 'github', link: 'https://github.com/morangoo/crowbar' },
       { icon: 'discord', link: '' }
     ]
   }
