@@ -1,5 +1,11 @@
 #[macro_use] extern crate rocket;
 
+mod routes {
+    pub mod steam {
+        pub mod market;
+    }
+}
+
 #[get("/")]
 fn index() -> &'static str {
     "Hello World"
@@ -7,5 +13,9 @@ fn index() -> &'static str {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+    rocket::build()
+        .mount("/", routes![index])
+        .mount("/api/steam", routes![routes::steam::market::ping])
 }
+
+
