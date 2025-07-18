@@ -1,7 +1,9 @@
+
 use rocket::get;
 use rocket::serde::{Serialize, json::Json};
 use reqwest;
 use scraper::{Html, Selector};
+use crate::response::ApiResponse;
 
 #[derive(Serialize)]
 pub struct MarketResult {
@@ -10,10 +12,9 @@ pub struct MarketResult {
 }
 
 #[get("/top")]
-pub async fn top() -> Json<Vec<MarketResult>> {
+pub async fn top() -> Json<ApiResponse<Vec<MarketResult>>> {
     let client = reqwest::Client::new();
-    let request = client
-        .get("https://steamcommunity.com/market/");
+    let request = client.get("https://steamcommunity.com/market/");
     match request.send().await {
         Ok(resp) => match resp.text().await {
             Ok(html) => {
@@ -34,10 +35,10 @@ pub async fn top() -> Json<Vec<MarketResult>> {
                     };
                     results.push(MarketResult { image, name });
                 }
-                Json(results)
+                Json(ApiResponse::success(results, "Data retrieved successfully"))
             },
-            Err(_) => Json(vec![]),
+            Err(e) => Json(ApiResponse::error(500, "Error reading HTML", &e.to_string())),
         },
-        Err(_) => Json(vec![]),
+        Err(e) => Json(ApiResponse::error(500, "Request error", &e.to_string())),
     }
 }

@@ -1,4 +1,5 @@
 #[macro_use] extern crate rocket;
+mod response;
 
 mod routes {
     pub mod steam {
