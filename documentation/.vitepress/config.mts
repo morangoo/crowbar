@@ -8,7 +8,7 @@ export default defineConfig({
       dark: "catppuccin-mocha",
     },
   },
-  outDir: '../dist',
+  outDir: '.vitepress/dist',
   title: "Crowbar API",
   description: "API Documentation",
   themeConfig: {
