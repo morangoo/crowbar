@@ -10,9 +10,9 @@ pub struct MarketResult {
     pub image: String,
     pub name: String,
     pub game: String,
-    pub price: String,
+    pub price: f64,
     pub currency: String,
-    pub qty: String,
+    pub qty: i32,
 }
 
 #[get("/top")]
@@ -53,16 +53,20 @@ pub async fn top() -> Json<ApiResponse<Vec<MarketResult>>> {
                 false
             }
         }) {
-            let price = price_elem.text().collect::<Vec<_>>().join("").trim().to_string();
+            let price_raw = price_elem.text().collect::<Vec<_>>().join("").trim().to_string();
+            let price_clean: String = price_raw.chars().filter(|c| c.is_ascii_digit() || *c == '.').collect();
+            let price = price_clean.parse::<f64>().unwrap_or(0.0);
             let currency = price_elem.value().attr("data-currency").unwrap_or("-").to_string();
             (price, currency)
         } else {
-            ("-".to_string(), "-".to_string())
+            (0.0, "-".to_string())
         };
         let qty = if let Some(qty_elem) = document.select(&qty_selector).next() {
-            qty_elem.text().collect::<Vec<_>>().join("").trim().to_string()
+            let qty_raw = qty_elem.text().collect::<Vec<_>>().join("").trim().to_string();
+            let qty_clean: String = qty_raw.replace(",", "");
+            qty_clean.parse::<i32>().unwrap_or(0)
         } else {
-            "-".to_string()
+            0
         };
         results.push(MarketResult { image, name, game, price, currency, qty });
     }
