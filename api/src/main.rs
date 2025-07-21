@@ -7,6 +7,8 @@ mod routes {
     }
 }
 
+use routes::steam::market::*;
+
 #[get("/")]
 fn index() -> &'static str {
     "Hello World"
@@ -16,7 +18,7 @@ fn index() -> &'static str {
 fn rocket() -> _ {
     rocket::build()
         .mount("/", routes![index])
-        .mount("/api/steam/market", routes![routes::steam::market::top])
+        .mount("/api/steam/market", routes![top])
 }
 
 

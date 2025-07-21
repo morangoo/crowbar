@@ -29,7 +29,9 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/morangoo/crowbar' },
-      { icon: 'discord', link: '' }
+      { icon: 'discord', link: '' },
+      { icon: 'patreon', link: '' },
+      { icon: 'steam', link: 'https://steamcommunity.com' }
     ]
   }
 })
