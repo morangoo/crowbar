@@ -15,15 +15,22 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/markdown-examples' }
+      { text: 'Documentation', link: '/docs' }
     ],
+
+    logo: 'https://raw.githubusercontent.com/morangoo/crowbar/master/public/crowbar.png',
 
     sidebar: [
       {
-        text: 'Examples',
+        text: 'Getting Started',
         items: [
           { text: 'Markdown Examples', link: '/markdown-examples' },
-          { text: 'Runtime API Examples', link: '/api-examples' }
+        ]
+      },
+      {
+        text: 'Steam',
+        items: [
+          { text: 'Steam Market', link: '/api-docs/steam-market' },
         ]
       }
     ],

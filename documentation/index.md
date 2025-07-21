@@ -8,11 +8,11 @@ hero:
   tagline: Let steam flow!
   actions:
     - theme: brand
-      text: Markdown Examples
-      link: /markdown-examples
+      text: Getting Started
+      link: /docs#gettingstarted
     - theme: alt
-      text: API Examples
-      link: /api-examples
+      text: Documentation
+      link: /docs
 
 features:
   - title: Feature A
