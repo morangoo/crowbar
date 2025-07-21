@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://d2t1xqejof9utc.cloudfront.net/screenshots/pics/9299f2a9fae4fc35c4b709be2380d62d/large.png" width="220px">
+  <img src="./public/crowbar.png" width="220px">
 </p>
 
 <h1 align="center">Crowbar</h1>
