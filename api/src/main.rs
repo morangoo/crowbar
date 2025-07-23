@@ -7,7 +7,7 @@ mod routes {
     }
 }
 
-use routes::steam::market::*;
+use routes::steam::market::all_routes;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -18,7 +18,7 @@ fn index() -> &'static str {
 fn rocket() -> _ {
     rocket::build()
         .mount("/", routes![index])
-        .mount("/api/steam/market", routes![top])
+        .mount("/api/steam/market", all_routes())
 }
 
 
