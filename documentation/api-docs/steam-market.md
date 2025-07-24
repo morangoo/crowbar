@@ -2,7 +2,7 @@
 
 Returns Steam Market search results with standardized API response.
 
-### Request example
+### Request Example
 
 ```http
 GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
@@ -14,7 +14,7 @@ GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
 - **sort** (string, optional): Sort order (default: `default_desc`)
 - **page** (integer, optional): Page number (default: 1)
 
-### Response example
+### Response Example
 
 ```json
 {
@@ -27,14 +27,27 @@ GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
     {
       "app_icon": "https://...",
       "app_name": "Counter-Strike 2",
-      "asset_description": { ... },
+      "item_details": {
+        "appid": 730,
+        "background_color": "",
+        "classid": "313225800",
+        "commodity": 0,
+        "icon_url": "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-AHliUwP5mvORWQiy3nAgq_WnWytagIH2QOgJxWZYmE-dZskPpltbiM-nrtgLYg4oWyS352nwdvHt1o7FVEyKITis",
+        "instanceid": "188530139",
+        "market_hash_name": "★ Karambit | Scorched (Field-Tested)",
+        "market_name": "★ Karambit | Scorched (Field-Tested)",
+        "name": "★ Karambit | Scorched (Field-Tested)",
+        "name_color": "8650AC",
+        "tradable": 1,
+        "type": "★ Covert Knife"
+      },
       "hash_name": "★ Karambit | Scorched (Field-Tested)",
       "name": "★ Karambit | Scorched (Field-Tested)",
       "sale_price_text": "$1,498.39",
       "sell_listings": 2,
       "sell_price": 156649,
       "sell_price_text": "$1,566.49"
-    },
+    }
     // ...
   ],
   "timestamp": "2025-07-24T09:56:19.014810900+00:00",
@@ -42,7 +55,8 @@ GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
 }
 ```
 
-### Returned fields
+### Returned Fields
+
 - **apiversion**: API version string
 - **code**: HTTP-like status code
 - **success**: Indicates if request was successful
@@ -55,7 +69,9 @@ GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
 #### Each item in `data` contains:
 - **app_icon**: Game icon URL
 - **app_name**: Game name
-- **asset_description**: Steam asset details (object)
+- **item**: Steam asset details (object, previously `asset_description`)
+  - **icon_url**: Always prefixed with `https://community.fastly.steamstatic.com/economy/image/`
+  - Other asset fields as returned by Steam
 - **hash_name**: Steam Market hash name
 - **name**: Item name
 - **sale_price_text**: Sale price (formatted)
@@ -63,7 +79,8 @@ GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
 - **sell_price**: Price in Steam currency units
 - **sell_price_text**: Price (formatted)
 
-#### Example error response
+### Example Error Response
+
 ```json
 {
   "apiversion": "v0.0.1cb",
@@ -73,6 +90,6 @@ GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
   "size": null,
   "data": null,
   "timestamp": "2025-07-24T09:56:19.014810900+00:00",
-  "error": 099
+  "error": "success != true"
 }
 ```
