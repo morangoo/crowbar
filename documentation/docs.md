@@ -1,85 +1,32 @@
-# Markdown Extension Examples
+# Crowbar
 
-This page demonstrates some of the built-in markdown extensions provided by VitePress.
+> Crowbar is a wild open-source project making data integration, analysis, and visualization as easy as breaking a crate. Automation, speed, and crazy extensibility are the name of the game.
 
-## Syntax Highlighting
+## About the Project
 
-VitePress provides Syntax Highlighting powered by [Shiki](https://github.com/shikijs/shiki), with additional features like line-highlighting:
+Crowbar was forged for developers, gamers, traders, and Steam maniacs. Built in Rust for maximum power, it comes loaded with robust endpoints, wild documentation, and practical examples to supercharge your Steam adventures.
 
-**Input**
+## Features
 
-````md
-```js{4}
-export default {
-  data () {
-    return {
-      msg: 'Highlighted!'
-    }
-  }
-}
-```
-````
+- REST API for grabbing prices, history, and stats of Steam Market items
+- Multi-endpoint madness and advanced filter wizardry
+- Interactive docs and wild usage examples
+- Modular structure for endless hacking
 
-**Output**
+## How to Use
 
-```js{4}
-export default {
-  data () {
-    return {
-      msg: 'Highlighted!'
-    }
-  }
-}
-```
+1. Clone this beast
+2. Follow the install spells in the docs
+3. Dive into the endpoints and unleash your integrations
 
-## Custom Containers
+## Documentation
 
-**Input**
+The docs cover everything from basic setup to advanced API sorcery. Check out the files in `documentation/` for all the juicy details.
 
-```md
-::: info
-This is an info box.
-:::
+## Contributing
 
-::: tip
-This is a tip.
-:::
+Contributions are welcome! See the `README.md` to join the chaos.
 
-::: warning
-This is a warning.
-:::
+---
 
-::: danger
-This is a dangerous warning.
-:::
-
-::: details
-This is a details block.
-:::
-```
-
-**Output**
-
-::: info
-This is an info box.
-:::
-
-::: tip
-This is a tip.
-:::
-
-::: warning
-This is a warning.
-:::
-
-::: danger
-This is a dangerous warning.
-:::
-
-::: details
-This is a details block.
-:::
-
-## More
-
-Check out the documentation for the [full list of markdown extensions](https://vitepress.dev/guide/markdown).
+Crowbar is maintained by [morangoo](https://github.com/morangoo) and the wild community. Feel free to open issues, suggest wild ideas, or send pull requests. Smash on!
