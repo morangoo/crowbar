@@ -69,9 +69,7 @@ GET /api/steam/market/search?appid=730&query=karambit&sort=default_desc&page=1
 #### Each item in `data` contains:
 - **app_icon**: Game icon URL
 - **app_name**: Game name
-- **item**: Steam asset details (object, previously `asset_description`)
-  - **icon_url**: Always prefixed with `https://community.fastly.steamstatic.com/economy/image/`
-  - Other asset fields as returned by Steam
+- **item_details**: Steam asset details
 - **hash_name**: Steam Market hash name
 - **name**: Item name
 - **sale_price_text**: Sale price (formatted)
