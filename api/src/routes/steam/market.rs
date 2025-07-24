@@ -59,13 +59,33 @@ pub async fn search(
             .and_then(|sd| sd.get("pagesize"))
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
-        let results = json.get("results").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+        let mut processed_results = Vec::new();
+        if let Some(arr) = json.get("results").and_then(|v| v.as_array()) {
+            for mut item in arr.clone() {
+                if let Some(obj) = item.as_object_mut() {
+                    if let Some(asset) = obj.remove("asset_description") {
+                        obj.insert("item_details".to_string(), asset);
+                    }
+                    if let Some(item_obj) = obj.get_mut("item_details") {
+                        if let Some(item_map) = item_obj.as_object_mut() {
+                            if let Some(icon_url_val) = item_map.get_mut("icon_url") {
+                                if let Some(icon_url_str) = icon_url_val.as_str() {
+                                    let new_url = format!("https://community.fastly.steamstatic.com/economy/image/{}", icon_url_str);
+                                    *icon_url_val = Value::String(new_url);
+                                }
+                            }
+                        }
+                    }
+                }
+                processed_results.push(item);
+            }
+        }
         Json(ApiResponse::new(
             200,
             true,
             "OK".to_string(),
             Some(pagesize),
-            Some(Value::Array(results)),
+            Some(Value::Array(processed_results)),
             chrono::Utc::now().to_rfc3339(),
             None,
         ))
