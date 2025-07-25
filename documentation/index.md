@@ -14,6 +14,7 @@ hero:
       text: Documentation
       link: /docs
 
+
 features:
   - title: "🛒 Steam Market Integration"
     details: Instantly access and analyze Steam Market data with powerful endpoints.
@@ -26,20 +27,32 @@ features:
 
 ---
 
+
+
+## Why Crowbar?
+
+- 🚀 **Fast & Modern**: Built with Rust and Rocket for blazing-fast performance.
+- 🧩 **Super Complete**: Not just Steam data—get in-game info too, like a player's CSGO rank and more.
+- 🔑 **No Steam API Key Needed**: Use all endpoints without requiring an official Steam API key.
+- 🔌 **Extensible**: Open source, modular, and easy to contribute.
+
+
 ## Sponsors
 
 <div align="center">
-  <a href="https://github.com/morangoo"><img src="https://avatars.githubusercontent.com/u/10601055?v=4" width="48" style="border-radius:50%" alt="morangoo"/></a>
   <a href="https://github.com/sponsors"><img src="https://github.githubassets.com/images/modules/site/sponsors/sponsors-mona.svg" width="48" alt="GitHub Sponsors"/></a>
   <br>
   <em>Want to support Crowbar? <a href="https://github.com/morangoo/crowbar">Become a sponsor!</a></em>
 </div>
 
+
 ## Changelog
 
 - <b>2025-07-25:</b> Documentation improvements, new homepage sections, and more endpoints coming soon!
-- <b>2025-07-20:</b> Added player stats and event endpoints.
-- <b>2025-07-10:</b> Initial public release.
+- <b>2025-07-20:</b> Added new documentation and improved market search endpoints.
+- <b>2025-07-10:</b> Project started.
+
+
 
 ## Team
 
@@ -48,7 +61,10 @@ features:
   <br>
   <span style="font-size:1.5em; font-weight:bold;">morangoo</span> <br>
   <span style="display:inline-block; background:#1c60ff; color:#fff; border-radius:8px; padding:2px 10px; font-size:0.95em; font-weight:600; margin:4px 0 2px 0; vertical-align:middle;">Lead Developer 🧃</span>
+  <br>
+  <span style="display:inline-block; background:#f5e0dc; color:#24273a; border-radius:8px; padding:2px 10px; font-size:0.95em; font-weight:600; margin:2px 0 2px 0; vertical-align:middle;">🇵🇹 Portugal</span>
 </div>
+
 
 ## FAQ
 
@@ -60,6 +76,8 @@ A: Absolutely! Check the GitHub repo for issues or open a pull request.
 
 **Q: Where can I get support?**  
 A: Open an issue on GitHub or join our community (Discord coming soon).
+
+
 
 ## Usage Examples
 
@@ -80,18 +98,21 @@ Response:
 }
 ```
 
+
 ## Roadmap
 
-- [ ] More game-specific stats (Dota 2, CSGO, etc.)
-- [ ] Webhooks for real-time updates
-- [ ] Discord bot integration
-- [ ] More community features
+| Feature                                   | Status        | Est. Release |
+|-------------------------------------------|---------------|--------------|
+| More game-specific stats (Dota 2, CSGO, etc.) | 🟡 Coming soon | Q4 2025      |
+| Webhooks for real-time updates                | 🔜 Planned     | Q1 2026      |
+| Discord bot integration                       | 🔜 Planned     | Q1 2026     |
+| More community features                       | 🟡 Coming soon | Q4 2025      |
 
----
 
-<div align="center" style="margin-top:2em; color: #888;">
+
+<div align="center" style="margin-top:5em; color: #888;">
   Crowbar API © 2025 by morangoo & contributors.<br>
   Open source on <a href="https://github.com/morangoo/crowbar">GitHub</a> &middot; Powered by <a href="https://vitepress.dev/">VitePress</a><br>
-  Special thanks to all <a href="https://github.com/morangoo/crowbar/graphs/contributors">contributors</a> and our amazing community!
+  Special thanks to all <a href="https://github.com/morangoo/crowbar/graphs/contributors">contributors</a> and our amazing community! 💙
 </div>
 
