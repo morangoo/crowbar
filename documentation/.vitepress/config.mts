@@ -22,9 +22,9 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: 'Getting Started',
+        text: 'Crowbar API',
         items: [
-          { text: 'Markdown Examples', link: '/markdown-examples' },
+          { text: 'Getting Started', link: '/api-info/getting-started' },
         ]
       },
       {
