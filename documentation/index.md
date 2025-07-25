@@ -99,6 +99,38 @@ Response:
 ```
 
 
+## How to contribute
+
+Want to help improve Crowbar? Contributions are welcome!
+
+- Check out the [GitHub issues](https://github.com/morangoo/crowbar/issues) for things to work on.
+- Fork the repository and submit a pull request.
+- See the `CONTRIBUTING.md` (coming soon) for guidelines.
+
+
+## Community Feedback
+
+> "Your feedback could be here!"
+
+(This section will feature real user testimonials soon.)
+
+
+## Technical FAQ
+
+**Q: Are there any rate limits?**  
+A: Not at the moment, but please be respectful with your usage.
+
+**Q: Is authentication required?**  
+A: No API key is needed for public endpoints.
+
+**Q: What is the average response time?**  
+A: Most endpoints respond in under 200ms.
+
+**Q: Can I self-host Crowbar?**  
+A: Yes! The project is open source and ready for self-hosting.
+
+
+
 ## Roadmap
 
 | Feature                                   | Status        | Est. Release |
@@ -107,6 +139,7 @@ Response:
 | Webhooks for real-time updates                | 🔜 Planned     | Q1 2026      |
 | Discord bot integration                       | 🔜 Planned     | Q1 2026     |
 | More community features                       | 🟡 Coming soon | Q4 2025      |
+| Public stats API                              | 💡 Idea         | —            |
 
 
 
