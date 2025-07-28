@@ -1,4 +1,3 @@
-use rocket::http::Status;
 use scraper::{Html, Selector};
 use rocket::serde::json::Json;
 use crate::response::ApiResponse;
@@ -105,11 +104,19 @@ pub async fn search(
 }
 
 #[post("/item", data = "<input>")]
-pub async fn item(input: Json<Value>) -> Result<Json<Value>, Status> {
+pub async fn item(input: Json<Value>) -> Json<ApiResponse<Value>> {
     let appid = input.get("appid").and_then(|v| v.as_str()).unwrap_or("");
     let marketname = input.get("marketname").and_then(|v| v.as_str()).unwrap_or("");
     if appid.is_empty() || marketname.is_empty() {
-        return Err(Status::BadRequest);
+        return Json(ApiResponse::new(
+            400,
+            false,
+            "Missing appid or marketname".to_string(),
+            None,
+            None,
+            chrono::Utc::now().to_rfc3339(),
+            Some("appid or marketname missing".to_string()),
+        ));
     }
     let encoded_name = urlencoding::encode(marketname);
     let url = format!(
@@ -118,11 +125,31 @@ pub async fn item(input: Json<Value>) -> Result<Json<Value>, Status> {
     );
     let resp = match reqwest::get(&url).await {
         Ok(r) => r,
-        Err(_) => return Err(Status::InternalServerError),
+        Err(e) => {
+            return Json(ApiResponse::new(
+                500,
+                false,
+                "Error making request".to_string(),
+                None,
+                None,
+                chrono::Utc::now().to_rfc3339(),
+                Some(e.to_string()),
+            ));
+        }
     };
     let html = match resp.text().await {
         Ok(t) => t,
-        Err(_) => return Err(Status::InternalServerError),
+        Err(e) => {
+            return Json(ApiResponse::new(
+                500,
+                false,
+                "Error reading HTML response".to_string(),
+                None,
+                None,
+                chrono::Utc::now().to_rfc3339(),
+                Some(e.to_string()),
+            ));
+        }
     };
     let document = Html::parse_document(&html);
     let selector = Selector::parse("script").unwrap();
@@ -144,17 +171,51 @@ pub async fn item(input: Json<Value>) -> Result<Json<Value>, Status> {
                         }
                         if let Some(id) = current.get("id").and_then(|v| v.as_str()) {
                             if let Some(obj) = current.get(id) {
-                                return Ok(Json(obj.clone()));
+                                return Json(ApiResponse::new(
+                                    200,
+                                    true,
+                                    "OK".to_string(),
+                                    None,
+                                    Some(obj.clone()),
+                                    chrono::Utc::now().to_rfc3339(),
+                                    None,
+                                ));
                             }
                         }
-                        return Ok(Json(current.clone()));
+                        return Json(ApiResponse::new(
+                            200,
+                            true,
+                            "OK".to_string(),
+                            None,
+                            Some(current.clone()),
+                            chrono::Utc::now().to_rfc3339(),
+                            None,
+                        ));
                     },
-                    Err(_) => return Err(Status::InternalServerError),
+                    Err(e) => {
+                        return Json(ApiResponse::new(
+                            500,
+                            false,
+                            "Error parsing JSON from script".to_string(),
+                            None,
+                            None,
+                            chrono::Utc::now().to_rfc3339(),
+                            Some(e.to_string()),
+                        ));
+                    }
                 }
             }
         }
     }
-    Err(Status::NotFound)
+    Json(ApiResponse::new(
+        404,
+        false,
+        "Asset information not found".to_string(),
+        None,
+        None,
+        chrono::Utc::now().to_rfc3339(),
+        None,
+    ))
 }
 
 pub fn all_routes() -> Vec<Route> {
