@@ -15,7 +15,7 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Documentation', link: '/docs' }
+      { text: 'Documentation', link: '/api-info/data-sources' }
     ],
 
     logo: 'https://raw.githubusercontent.com/morangoo/crowbar/master/public/crowbar.png',
@@ -25,6 +25,8 @@ export default defineConfig({
         text: 'Crowbar API',
         items: [
           { text: 'Getting Started', link: '/api-info/getting-started' },
+          { text: 'Data Sources', link: '/api-info/data-sources' },
+          { text: 'Steam', link: '/api-info/steam' },
         ]
       },
       {

@@ -12,7 +12,7 @@ hero:
       link: /api-info/getting-started
     - theme: alt
       text: Documentation
-      link: /docs
+      link: /api-info/data-sources
 
 
 features:
