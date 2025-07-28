@@ -1,6 +1,8 @@
+use rocket::http::Status;
+use scraper::{Html, Selector};
 use rocket::serde::json::Json;
 use crate::response::ApiResponse;
-use rocket::get;
+use rocket::{get, post};
 use rocket::Route;
 use serde_json::Value;
 
@@ -10,13 +12,13 @@ pub async fn search(
     query: Option<String>,
     sort: Option<String>,
     page: Option<u32>,
-    ) -> Json<ApiResponse<Value>> {
+) -> Json<ApiResponse<Value>> {
     let appid = appid.as_deref().unwrap_or("");
     let query = query.as_deref().unwrap_or("");
     let sort = sort.as_deref().unwrap_or("default_desc");
     let page = page.unwrap_or(1);
     let start = (page - 1) * 10;
-
+    
     let mut url = format!("https://steamcommunity.com/market/search/render/?count=10&norender=1&sort={sort}&start={start}");
     if !query.is_empty() {
         url.push_str(&format!("&query={}", urlencoding::encode(query)));
@@ -24,7 +26,7 @@ pub async fn search(
     if !appid.is_empty() {
         url.push_str(&format!("&appid={}", appid));
     }
-
+    
     let resp = match reqwest::get(&url).await {
         Ok(r) => r,
         Err(e) => {
@@ -56,9 +58,9 @@ pub async fn search(
 
     if json.get("success") == Some(&Value::Bool(true)) {
         let pagesize = json.get("searchdata")
-            .and_then(|sd| sd.get("pagesize"))
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0);
+        .and_then(|sd| sd.get("pagesize"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
         let mut processed_results = Vec::new();
         if let Some(arr) = json.get("results").and_then(|v| v.as_array()) {
             for mut item in arr.clone() {
@@ -102,6 +104,59 @@ pub async fn search(
     }
 }
 
+#[post("/item", data = "<input>")]
+pub async fn item(input: Json<Value>) -> Result<Json<Value>, Status> {
+    let appid = input.get("appid").and_then(|v| v.as_str()).unwrap_or("");
+    let marketname = input.get("marketname").and_then(|v| v.as_str()).unwrap_or("");
+    if appid.is_empty() || marketname.is_empty() {
+        return Err(Status::BadRequest);
+    }
+    let encoded_name = urlencoding::encode(marketname);
+    let url = format!(
+        "https://steamcommunity.com/market/listings/{}/{}",
+        appid, encoded_name
+    );
+    let resp = match reqwest::get(&url).await {
+        Ok(r) => r,
+        Err(_) => return Err(Status::InternalServerError),
+    };
+    let html = match resp.text().await {
+        Ok(t) => t,
+        Err(_) => return Err(Status::InternalServerError),
+    };
+    let document = Html::parse_document(&html);
+    let selector = Selector::parse("script").unwrap();
+    for script in document.select(&selector) {
+        let script_text = script.text().collect::<Vec<_>>().join("");
+        if let Some(idx) = script_text.find("g_rgAssets = ") {
+            let json_start = idx + "g_rgAssets = ".len();
+            if let Some(end_idx) = script_text[json_start..].find(";") {
+                let json_str = &script_text[json_start..json_start+end_idx];
+                match serde_json::from_str::<Value>(json_str) {
+                    Ok(val) => {
+                        let mut current = &val;
+                        while let Some(map) = current.as_object() {
+                            if map.len() == 1 {
+                                current = map.values().next().unwrap();
+                            } else {
+                                break;
+                            }
+                        }
+                        if let Some(id) = current.get("id").and_then(|v| v.as_str()) {
+                            if let Some(obj) = current.get(id) {
+                                return Ok(Json(obj.clone()));
+                            }
+                        }
+                        return Ok(Json(current.clone()));
+                    },
+                    Err(_) => return Err(Status::InternalServerError),
+                }
+            }
+        }
+    }
+    Err(Status::NotFound)
+}
+
 pub fn all_routes() -> Vec<Route> {
-    routes![search]
+    routes![search, item]
 }
