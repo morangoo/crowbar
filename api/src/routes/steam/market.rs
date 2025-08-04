@@ -1,3 +1,6 @@
+fn make_icon_url(s: &str) -> String {
+    format!("https://community.fastly.steamstatic.com/economy/image/{}", s)
+}
 use scraper::{Html, Selector};
 use rocket::serde::json::Json;
 use crate::response::ApiResponse;
@@ -72,8 +75,7 @@ pub async fn search(
                     
                     if let Some(icon_url_val) = item_map.get_mut("icon_url") {
                         if let Some(icon_url_str) = icon_url_val.as_str() {
-                            let new_url = format!("https://community.fastly.steamstatic.com/economy/image/{}", icon_url_str);
-                            *icon_url_val = Value::String(new_url);
+                            *icon_url_val = Value::String(make_icon_url(icon_url_str));
                         }
                     }
 
@@ -118,7 +120,7 @@ pub async fn search(
 #[post("/item", data = "<input>")]
 pub async fn item(input: Json<Value>) -> Json<ApiResponse<Value>> {
     let appid = input.get("appid").and_then(|v| v.as_str()).unwrap_or("");
-    let marketname = input.get("marketname").and_then(|v| v.as_str()).unwrap_or("");
+    let marketname = input.get("hashname").and_then(|v| v.as_str()).unwrap_or("");
     if appid.is_empty() || marketname.is_empty() {
         return Json(ApiResponse::new(
             400,
@@ -181,25 +183,44 @@ pub async fn item(input: Json<Value>) -> Json<ApiResponse<Value>> {
                                 break;
                             }
                         }
+                        let process_icon_urls = |obj: &mut serde_json::Map<String, Value>| {
+                            if let Some(icon_url_val) = obj.get_mut("icon_url") {
+                                if let Some(icon_url_str) = icon_url_val.as_str() {
+                                    *icon_url_val = Value::String(make_icon_url(icon_url_str));
+                                }
+                            }
+                            if let Some(icon_url_large_val) = obj.get_mut("icon_url_large") {
+                                if let Some(icon_url_large_str) = icon_url_large_val.as_str() {
+                                    *icon_url_large_val = Value::String(make_icon_url(icon_url_large_str));
+                                }
+                            }
+                        };
                         if let Some(id) = current.get("id").and_then(|v| v.as_str()) {
-                            if let Some(obj) = current.get(id) {
+                            if let Some(mut obj) = current.get(id).cloned() {
+                                if let Some(obj_map) = obj.as_object_mut() {
+                                    process_icon_urls(obj_map);
+                                }
                                 return Json(ApiResponse::new(
                                     200,
                                     true,
                                     "OK".to_string(),
                                     None,
-                                    Some(obj.clone()),
+                                    Some(obj),
                                     chrono::Utc::now().to_rfc3339(),
                                     None,
                                 ));
                             }
+                        }
+                        let mut obj = current.clone();
+                        if let Some(obj_map) = obj.as_object_mut() {
+                            process_icon_urls(obj_map);
                         }
                         return Json(ApiResponse::new(
                             200,
                             true,
                             "OK".to_string(),
                             None,
-                            Some(current.clone()),
+                            Some(obj),
                             chrono::Utc::now().to_rfc3339(),
                             None,
                         ));
