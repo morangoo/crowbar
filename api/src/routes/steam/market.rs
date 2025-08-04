@@ -62,25 +62,37 @@ pub async fn search(
         .unwrap_or(0);
         let mut processed_results = Vec::new();
         if let Some(arr) = json.get("results").and_then(|v| v.as_array()) {
-            for mut item in arr.clone() {
-                if let Some(obj) = item.as_object_mut() {
-                    if let Some(asset) = obj.remove("asset_description") {
-                        obj.insert("item_details".to_string(), asset);
-                    }
-                    if let Some(item_obj) = obj.get_mut("item_details") {
-                        if let Some(item_map) = item_obj.as_object_mut() {
-                            if let Some(icon_url_val) = item_map.get_mut("icon_url") {
-                                if let Some(icon_url_str) = icon_url_val.as_str() {
-                                    let new_url = format!("https://community.fastly.steamstatic.com/economy/image/{}", icon_url_str);
-                                    *icon_url_val = Value::String(new_url);
-                                }
-                            }
+    for mut item in arr.clone() {
+        if let Some(obj) = item.as_object_mut() {
+            if let Some(asset) = obj.remove("asset_description") {
+                obj.insert("item_details".to_string(), asset);
+            }
+            if let Some(item_obj) = obj.get_mut("item_details") {
+                if let Some(item_map) = item_obj.as_object_mut() {
+                    
+                    if let Some(icon_url_val) = item_map.get_mut("icon_url") {
+                        if let Some(icon_url_str) = icon_url_val.as_str() {
+                            let new_url = format!("https://community.fastly.steamstatic.com/economy/image/{}", icon_url_str);
+                            *icon_url_val = Value::String(new_url);
                         }
                     }
+
+                    let appid = item_map.get("appid").and_then(|v| v.as_u64());
+                    let market_hash_name = item_map.get("market_hash_name").and_then(|v| v.as_str());
+                    if let (Some(appid), Some(market_hash_name)) = (appid, market_hash_name) {
+                        let url = format!(
+                            "https://steamcommunity.com/market/listings/{}/{}",
+                            appid,
+                            urlencoding::encode(market_hash_name)
+                        );
+                        item_map.insert("market_url".to_string(), Value::String(url));
+                    }
                 }
-                processed_results.push(item);
             }
         }
+        processed_results.push(item);
+    }
+}
         Json(ApiResponse::new(
             200,
             true,
