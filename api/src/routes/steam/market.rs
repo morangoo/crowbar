@@ -16,7 +16,7 @@ fn make_icon_url(s: &str) -> String {
 use scraper::{Html, Selector};
 use rocket::serde::json::Json;
 use crate::response::ApiResponse;
-use rocket::{get, post};
+use rocket::{get};
 use rocket::Route;
 use serde_json::Value;
 
@@ -99,10 +99,10 @@ pub async fn search(
     ))
 }
 
-#[post("/item", data = "<input>")]
-pub async fn item(input: Json<Value>) -> Json<ApiResponse<Value>> {
-    let appid = input.get("appid").and_then(|v| v.as_str()).unwrap_or("");
-    let marketname = input.get("hashname").and_then(|v| v.as_str()).unwrap_or("");
+#[get("/item?<appid>&<hashname>")]
+pub async fn item(appid: Option<&str>, hashname: Option<&str>) -> Json<ApiResponse<Value>> {
+    let appid = appid.unwrap_or("");
+    let marketname = hashname.unwrap_or("");
     if appid.is_empty() || marketname.is_empty() {
         return Json(ApiResponse::new(
             400,
