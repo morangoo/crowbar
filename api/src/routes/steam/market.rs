@@ -99,7 +99,7 @@ pub async fn search(
     ))
 }
 
-#[get("/item?<appid>&<hashname>")]
+#[get("/item/<appid>?<hashname>")]
 pub async fn item(appid: Option<&str>, hashname: Option<&str>) -> Json<ApiResponse<Value>> {
     let appid = appid.unwrap_or("");
     let marketname = hashname.unwrap_or("");
