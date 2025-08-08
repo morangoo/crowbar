@@ -10,24 +10,19 @@
   <a href="https://rocket.rs/">
     <img src="https://img.shields.io/badge/Rocket-bb2b36?style=for-the-badge&logo=rocket&logoColor=white" alt="Rocket"/>
   </a>
-  <a href="https://nodejs.org/">
-    <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js"/>
-  </a>
-  <a href="https://vitepress.dev/">
-    <img src="https://img.shields.io/badge/VitePress-646cff?style=for-the-badge&logo=vite&logoColor=white" alt="VitePress"/>
-  </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License: MIT"/>
+    <img src="https://img.shields.io/badge/License-MIT-aa2b36.svg?style=for-the-badge" alt="License: MIT"/>
   </a>
 </p>
 
-<h1 align="center">Crowbar</h1>
+
+<h3 align="center">🛠️ Crowbar</h3>
 
 <p align="center">
-  A community-maintained API for accessing and integrating with Steam.<br>
-  Provides real-time data on games, users, inventories, and more.
+  <b>The open-source crowbar for Steam data!</b><br>
+  <i>Break open the Steam Community and get real-time info on games, users, inventories, and more.</i>
 </p>
 
 <p align="center">
-  <img src="https://store.cloudflare.steamstatic.com/public/shared/images/header/globalheader_logo.png" width="180px" alt="Steam logo"/>
+  <b>Made with ❤️ by the Crowbar community</b>
 </p>
