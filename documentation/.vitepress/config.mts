@@ -32,6 +32,7 @@ export default defineConfig({
       {
         text: 'Steam',
         items: [
+          { text: 'Steam Store', link: '/api-docs/steam-store' },
           { text: 'Steam Market', link: '/api-docs/steam-market' },
         ]
       }
