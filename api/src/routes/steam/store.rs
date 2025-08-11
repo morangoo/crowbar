@@ -5,7 +5,7 @@ use serde_json::Value;
 use scraper::{Html, Selector};
 
 #[get("/apps?<query>&<page>&<count>&<cc>&<language>")]
-pub async fn games(
+pub async fn apps(
     query: Option<String>,
     page: Option<u32>,
     count: Option<u32>,
@@ -126,7 +126,7 @@ pub async fn games(
 }
 
 #[get("/app/<appid>?<language>&<cc>")]
-pub async fn game(appid: u32, language: Option<String>, cc: Option<String>) -> Json<ApiResponse<Value>> {
+pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Json<ApiResponse<Value>> {
     let mut url = format!("https://store.steampowered.com/api/appdetails?appids={}", appid);
     if let Some(lang) = language {
         url.push_str(&format!("&l={}", urlencoding::encode(&lang)));
@@ -198,5 +198,5 @@ pub async fn game(appid: u32, language: Option<String>, cc: Option<String>) -> J
 }
 
 pub fn all_routes() -> Vec<Route> {
-    routes![games, game]
+    routes![apps, app]
 }
