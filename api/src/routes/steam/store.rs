@@ -134,6 +134,7 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
     if let Some(country) = cc {
         url.push_str(&format!("&cc={}", urlencoding::encode(&country)));
     }
+    // Fetch API data
     let resp = match reqwest::get(&url).await {
         Ok(r) => r,
         Err(e) => return Json(ApiResponse::new(
@@ -178,6 +179,24 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
             if let Some(Value::Object(ref mut map)) = data {
                 let cover_url = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", appid);
                 map.insert("cover_image".to_string(), Value::String(cover_url));
+                // Fetch and parse HTML for deckcompatibility
+                let store_url = format!("https://store.steampowered.com/app/{}", appid);
+                let html_resp = reqwest::get(&store_url).await;
+                if let Ok(html_page) = html_resp {
+                    if let Ok(html_text) = html_page.text().await {
+                        let document = scraper::Html::parse_document(&html_text);
+                        let selector = scraper::Selector::parse("div#application_config").unwrap();
+                        if let Some(div) = document.select(&selector).next() {
+                            if let Some(deckcompat) = div.value().attr("data-deckcompatibility") {
+                                if let Ok(deck_json) = serde_json::from_str::<serde_json::Value>(deckcompat) {
+                                    if let Some(cat) = deck_json.get("resolved_category") {
+                                        map.insert("steamdeck_compatibility".to_string(), cat.clone());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             let size = Some(1);
             Json(ApiResponse::new(
