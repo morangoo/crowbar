@@ -173,7 +173,12 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                     Some("success == false".to_string()),
                 ));
             }
-            let data = obj.get("data").cloned();
+            let mut data = obj.get("data").cloned();
+            // Add cover_image field
+            if let Some(Value::Object(ref mut map)) = data {
+                let cover_url = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", appid);
+                map.insert("cover_image".to_string(), Value::String(cover_url));
+            }
             let size = Some(1);
             Json(ApiResponse::new(
                 200,
