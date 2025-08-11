@@ -21,7 +21,7 @@ fn rocket() -> _ {
     rocket::build()
         .mount("/", routes![index])
         .mount("/api/steam/market", market_routes())
-        .mount("/api/steam/store", store_routes())
+        .mount("/api/steam/", store_routes())
 }
 
 

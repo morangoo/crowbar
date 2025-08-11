@@ -4,7 +4,7 @@ use rocket::{get, Route};
 use serde_json::Value;
 use scraper::{Html, Selector};
 
-#[get("/games?<query>&<page>&<count>&<cc>&<language>")]
+#[get("/apps?<query>&<page>&<count>&<cc>&<language>")]
 pub async fn games(
     query: Option<String>,
     page: Option<u32>,
@@ -125,7 +125,7 @@ pub async fn games(
     ))
 }
 
-#[get("/game/<appid>?<language>&<cc>")]
+#[get("/app/<appid>?<language>&<cc>")]
 pub async fn game(appid: u32, language: Option<String>, cc: Option<String>) -> Json<ApiResponse<Value>> {
     let mut url = format!("https://store.steampowered.com/api/appdetails?appids={}", appid);
     if let Some(lang) = language {
