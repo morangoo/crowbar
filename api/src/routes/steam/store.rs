@@ -276,6 +276,32 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                                                     map.insert("steamdeck_category".to_string(), Value::String(label_str.to_string()));
                                                 }
                                             }
+                                            if let Some(Value::Array(items)) = map.get_mut("steamdeck_compatibility_items") {
+                                                for item in items.iter_mut() {
+                                                    if let Value::Object(obj) = item {
+                                                        if let Some(Value::String(token)) = obj.get("token") {
+                                                            if let Some(label_val) = shared_json.get(token) {
+                                                                if let Some(label_str) = label_val.as_str() {
+                                                                    obj.insert("label".to_string(), Value::String(label_str.to_string()));
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if let Some(Value::Array(items)) = map.get_mut("steamos_resolved_items") {
+                                                for item in items.iter_mut() {
+                                                    if let Value::Object(obj) = item {
+                                                        if let Some(Value::String(token)) = obj.get("token") {
+                                                            if let Some(label_val) = shared_json.get(token) {
+                                                                if let Some(label_str) = label_val.as_str() {
+                                                                    obj.insert("label".to_string(), Value::String(label_str.to_string()));
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
