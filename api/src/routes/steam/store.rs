@@ -186,6 +186,28 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
             };
             let mut resolved_category: Option<serde_json::Value> = None;
             let mut category_key: Option<String> = None;
+
+            let mut positive_reviews: Option<u64> = None;
+            let mut total_reviews: Option<u64> = None;
+            if !html_text.is_empty() {
+                let document = scraper::Html::parse_document(&html_text);
+                let selector_pos = scraper::Selector::parse("input#review_summary_num_positive_reviews").unwrap();
+                let selector_total = scraper::Selector::parse("input#review_summary_num_reviews").unwrap();
+                if let Some(input) = document.select(&selector_pos).next() {
+                    if let Some(val) = input.value().attr("value") {
+                        if let Ok(num) = val.parse::<u64>() {
+                            positive_reviews = Some(num);
+                        }
+                    }
+                }
+                if let Some(input) = document.select(&selector_total).next() {
+                    if let Some(val) = input.value().attr("value") {
+                        if let Ok(num) = val.parse::<u64>() {
+                            total_reviews = Some(num);
+                        }
+                    }
+                }
+            }
             if !html_text.is_empty() {
                 let document = scraper::Html::parse_document(&html_text);
                 let selector = scraper::Selector::parse("div#application_config").unwrap();
@@ -258,6 +280,17 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
             if let Some(Value::Object(ref mut map)) = data {
                 let cover_url = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", appid);
                 map.insert("cover_image".to_string(), Value::String(cover_url));
+                if let (Some(pos), Some(total)) = (positive_reviews, total_reviews) {
+                    map.insert("positive_reviews".to_string(), serde_json::Value::Number(pos.into()));
+                    map.insert("total_reviews".to_string(), serde_json::Value::Number(total.into()));
+                    let percentage = if total > 0 {
+                        let pct = (pos as f64) * 100.0 / (total as f64);
+                        format!("{:.2}", pct)
+                    } else {
+                        "0.00".to_string()
+                    };
+                    map.insert("positive_reviews_percentage".to_string(), serde_json::Value::String(percentage));
+                }
                 if let Some(cat) = resolved_category {
                     map.insert("steamdeck_compatibility".to_string(), cat.clone());
                     if let Some(category_key) = category_key {
