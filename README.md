@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="./public/crowbar.png" width="220px">
 </p>
@@ -22,6 +21,39 @@
   <b>The open-source crowbar for Steam data!</b><br>
   <i>Break open the Steam Community and get real-time info on games, users, inventories, and more.</i>
 </p>
+
+# Local Development Setup
+
+
+## Requirements
+
+- [Rust](https://www.rust-lang.org/tools/install) (stable)
+- [Cargo](https://doc.rust-lang.org/cargo/getting-started.html) (comes with Rust)
+- [Node.js](https://nodejs.org/) (if you want to use documentation or frontend)
+
+## Starting the API (backend)
+
+```sh
+cd api
+cargo run
+```
+
+## Starting the documentation (optional)
+
+```sh
+cd documentation
+npm install
+npm start
+```
+
+## Notes
+
+- The backend runs by default at `localhost:8000` (Rocket).
+- For development, use `cargo run` inside the `api` folder.
+- To update Rust dependencies: `cargo update`.
+- To run tests: `cargo test`.
+
+If you have any questions, check the `CONTRIBUTING.md` file or open an issue.
 
 <p align="center">
   <b>Made with ❤️ by the Crowbar community</b>
