@@ -3,6 +3,32 @@ use crate::response::ApiResponse;
 use rocket::{get, Route};
 use serde_json::Value;
 use scraper::{Html, Selector};
+// Helper: Extract value from input element by id
+fn extract_input_value(document: &Html, id: &str) -> Option<u64> {
+    let selector = Selector::parse(&format!("input#{}", id)).ok()?;
+    document.select(&selector).next()?.value().attr("value")?.parse::<u64>().ok()
+}
+
+// Helper: Transform compatibility items array
+fn transform_compat_items(items: &Value) -> Value {
+    match items {
+        Value::Array(arr) => Value::Array(
+            arr.iter().cloned().map(|mut item| {
+                if let Value::Object(ref mut obj) = item {
+                    if let Some(display_type) = obj.remove("display_type") {
+                        obj.insert("compatibility".to_string(), display_type);
+                    }
+                    if let Some(loc_token) = obj.remove("loc_token") {
+                        let token_str = loc_token.as_str().map(|s| s.trim_start_matches('#').to_string()).unwrap_or_default();
+                        obj.insert("token".to_string(), Value::String(token_str));
+                    }
+                }
+                item
+            }).collect()
+        ),
+        _ => items.clone(),
+    }
+}
 
 #[get("/apps?<query>&<page>&<count>&<cc>&<language>")]
 pub async fn apps(
@@ -12,6 +38,7 @@ pub async fn apps(
     cc: Option<String>,
     language: Option<String>
 ) -> Json<ApiResponse<Value>> {
+    // Build Steam search URL
     let mut url = String::from("https://store.steampowered.com/search/results/?norender=1");
     if let Some(q) = query {
         url.push_str(&format!("&term={}", urlencoding::encode(&q)));
@@ -24,93 +51,59 @@ pub async fn apps(
     if let Some(ref lang) = language {
         url.push_str(&format!("&l={}", urlencoding::encode(lang)));
     }
+    // Fetch search results HTML
     let resp = match reqwest::get(&url).await {
         Ok(r) => r,
-        Err(e) => return Json(ApiResponse::new(
-            500,
-            false,
-            "Error making request".to_string(),
-            None,
-            None,
-            chrono::Utc::now().to_rfc3339(),
-            Some(e.to_string()),
-        )),
+        Err(e) => return Json(ApiResponse::new(500, false, "Error making request".to_string(), None, None, chrono::Utc::now().to_rfc3339(), Some(e.to_string()))),
     };
     let html = match resp.text().await {
         Ok(t) => t,
-        Err(e) => return Json(ApiResponse::new(
-            500,
-            false,
-            "Error reading HTML response".to_string(),
-            None,
-            None,
-            chrono::Utc::now().to_rfc3339(),
-            Some(e.to_string()),
-        )),
+        Err(e) => return Json(ApiResponse::new(500, false, "Error reading HTML response".to_string(), None, None, chrono::Utc::now().to_rfc3339(), Some(e.to_string()))),
     };
+    // Parse HTML and extract game results
     let document = Html::parse_document(&html);
     let selector = Selector::parse("a.search_result_row").unwrap();
     let mut results = Vec::new();
     for game in document.select(&selector) {
-        let title = game.select(&Selector::parse("span.title").unwrap()).next().map(|e| e.text().collect::<String>());
-        let appid = game.value().attr("data-ds-appid").and_then(|v| v.parse::<u32>().ok());
-        let url = game.value().attr("href").map(|s| s.to_string());
-        let img = game.select(&Selector::parse(".search_capsule img").unwrap()).next().and_then(|e| e.value().attr("src")).map(|s| s.to_string());
+        let mut obj = serde_json::Map::new();
+        // Basic info
+        if let Some(appid) = game.value().attr("data-ds-appid").and_then(|v| v.parse::<u32>().ok()) {
+            obj.insert("appid".to_string(), Value::Number(appid.into()));
+            obj.insert("img_large".to_string(), Value::String(format!("https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{}/header.jpg", appid)));
+        }
+        obj.insert("title".to_string(), game.select(&Selector::parse("span.title").unwrap()).next().map(|e| e.text().collect::<String>()).unwrap_or_default().into());
+        obj.insert("url".to_string(), game.value().attr("href").map(|s| Value::String(s.to_string())).unwrap_or(Value::Null));
+        obj.insert("img".to_string(), game.select(&Selector::parse(".search_capsule img").unwrap()).next().and_then(|e| e.value().attr("src")).map(|s| Value::String(s.to_string())).unwrap_or(Value::Null));
+        // Price and discount
         let price_final = game.select(&Selector::parse(".discount_final_price").unwrap()).next().map(|e| e.text().collect::<String>());
         let price_original = game.select(&Selector::parse(".discount_original_price").unwrap()).next().map(|e| e.text().collect::<String>());
+        obj.insert("price_final".to_string(), price_final.clone().map(Value::String).unwrap_or(Value::Null));
+        obj.insert("price_original".to_string(), price_original.clone().map(Value::String).unwrap_or(Value::Null));
         let discount_pct = game.select(&Selector::parse(".discount_pct").unwrap()).next().map(|e| e.text().collect::<String>());
-        let released = game.select(&Selector::parse(".search_released").unwrap()).next().map(|e| e.text().collect::<String>());
-        let review = game.select(&Selector::parse(".search_review_summary").unwrap()).next().and_then(|e| e.value().attr("data-tooltip-html")).map(|s| s.to_string());
-        let mut platforms = Vec::new();
-        let platform_selector = Selector::parse(".platform_img").unwrap();
-        let platform_div = game.select(&platform_selector);
-        for p in platform_div {
-            if let Some(class) = p.value().attr("class") {
-                if class.contains("win") { platforms.push("windows"); }
-                if class.contains("mac") { platforms.push("mac"); }
-                if class.contains("linux") { platforms.push("linux"); }
-            }
-        }
-        let tags = game.value().attr("data-ds-tagids").map(|s| Value::String(s.to_string()));
-        let descids = game.value().attr("data-ds-descids").map(|s| Value::String(s.to_string()));
-        let crtrids = game.value().attr("data-ds-crtrids").map(|s| Value::String(s.to_string()));
-        let itemkey = game.value().attr("data-ds-itemkey").map(|s| Value::String(s.to_string()));
-        let steamdeck = game.value().attr("data-ds-steam-deck-compat-handled").map(|s| Value::String(s.to_string()));
-        let bundle_discount = game.select(&Selector::parse(".discount_block").unwrap()).next().and_then(|e| e.value().attr("data-bundlediscount")).map(|s| s.to_string());
-        let mut obj = serde_json::Map::new();
-        if let Some(appid) = appid {
-            obj.insert("appid".to_string(), Value::Number(appid.into()));
-            let img_large = format!("https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{}/header.jpg", appid);
-            obj.insert("img_large".to_string(), Value::String(img_large));
-        }
-        if let Some(title) = title { obj.insert("title".to_string(), Value::String(title)); }
-        if let Some(url) = url { obj.insert("url".to_string(), Value::String(url)); }
-        if let Some(img) = img { obj.insert("img".to_string(), Value::String(img)); }
-        if let Some(price_final) = price_final { obj.insert("price_final".to_string(), Value::String(price_final)); }
-        if let Some(price_original) = price_original { obj.insert("price_original".to_string(), Value::String(price_original)); }
-        let mut discount_value = 0;
-        if let Some(discount_pct) = discount_pct {
-            obj.insert("discount_pct".to_string(), Value::String(discount_pct.clone()));
-            obj.insert("discounted".to_string(), Value::Bool(true));
-            if let Some(stripped) = discount_pct.strip_prefix('-').and_then(|s| s.strip_suffix('%')) {
-                if let Ok(val) = stripped.parse::<u32>() {
-                    discount_value = val;
-                }
-            }
-        } else {
-            obj.insert("discount_pct".to_string(), Value::String("0%".to_string()));
-            obj.insert("discounted".to_string(), Value::Bool(false));
-        }
+        let discount_value = discount_pct.as_ref().and_then(|d| d.strip_prefix('-').and_then(|s| s.strip_suffix('%')).and_then(|s| s.parse::<u32>().ok())).unwrap_or(0);
+        obj.insert("discount_pct".to_string(), Value::String(discount_pct.clone().unwrap_or("0%".to_string())));
+        obj.insert("discounted".to_string(), Value::Bool(discount_pct.is_some()));
         obj.insert("discount".to_string(), Value::Number(discount_value.into()));
-        if let Some(bundle_discount) = bundle_discount { obj.insert("bundle_discount".to_string(), Value::String(bundle_discount)); }
-        if let Some(released) = released { obj.insert("released".to_string(), Value::String(released)); }
-        if let Some(review) = review { obj.insert("review".to_string(), Value::String(review)); }
-        if !platforms.is_empty() { obj.insert("platforms".to_string(), Value::Array(platforms.into_iter().map(|s| Value::String(s.to_string())).collect())); }
-        if let Some(tags) = tags { obj.insert("tags".to_string(), tags); }
-        if let Some(descids) = descids { obj.insert("descids".to_string(), descids); }
-        if let Some(crtrids) = crtrids { obj.insert("crtrids".to_string(), crtrids); }
-        if let Some(itemkey) = itemkey { obj.insert("itemkey".to_string(), itemkey); }
-        if let Some(steamdeck) = steamdeck { obj.insert("steamdeck".to_string(), steamdeck); }
+        obj.insert("bundle_discount".to_string(), game.select(&Selector::parse(".discount_block").unwrap()).next().and_then(|e| e.value().attr("data-bundlediscount")).map(|s| Value::String(s.to_string())).unwrap_or(Value::Null));
+        // Other info
+        obj.insert("released".to_string(), game.select(&Selector::parse(".search_released").unwrap()).next().map(|e| Value::String(e.text().collect())).unwrap_or(Value::Null));
+        obj.insert("review".to_string(), game.select(&Selector::parse(".search_review_summary").unwrap()).next().and_then(|e| e.value().attr("data-tooltip-html")).map(|s| Value::String(s.to_string())).unwrap_or(Value::Null));
+        // Platforms
+        let mut platforms = Vec::new();
+        for p in game.select(&Selector::parse(".platform_img").unwrap()) {
+            if let Some(class) = p.value().attr("class") {
+                if class.contains("win") { platforms.push(Value::String("windows".to_string())); }
+                if class.contains("mac") { platforms.push(Value::String("mac".to_string())); }
+                if class.contains("linux") { platforms.push(Value::String("linux".to_string())); }
+            }
+        }
+        if !platforms.is_empty() { obj.insert("platforms".to_string(), Value::Array(platforms)); }
+        // Extra attributes
+        for &(key, attr) in &[ ("tags", "data-ds-tagids"), ("descids", "data-ds-descids"), ("crtrids", "data-ds-crtrids"), ("itemkey", "data-ds-itemkey"), ("steamdeck", "data-ds-steam-deck-compat-handled") ] {
+            if let Some(val) = game.value().attr(attr) {
+                obj.insert(key.to_string(), Value::String(val.to_string()));
+            }
+        }
         results.push(Value::Object(obj));
     }
     let size = Some(results.len() as u64);
@@ -137,45 +130,22 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
     // Fetch API data
     let resp = match reqwest::get(&url).await {
         Ok(r) => r,
-        Err(e) => return Json(ApiResponse::new(
-            500,
-            false,
-            "Error making request".to_string(),
-            None,
-            None,
-            chrono::Utc::now().to_rfc3339(),
-            Some(e.to_string()),
-        )),
+        Err(e) => return Json(ApiResponse::new(500, false, "Error making request".to_string(), None, None, chrono::Utc::now().to_rfc3339(), Some(e.to_string()))),
     };
     let json: Value = match resp.json().await {
         Ok(j) => j,
-        Err(e) => return Json(ApiResponse::new(
-            500,
-            false,
-            "Error reading JSON response".to_string(),
-            None,
-            None,
-            chrono::Utc::now().to_rfc3339(),
-            Some(e.to_string()),
-        )),
+        Err(e) => return Json(ApiResponse::new(500, false, "Error reading JSON response".to_string(), None, None, chrono::Utc::now().to_rfc3339(), Some(e.to_string()))),
     };
     let entry = json.get(appid.to_string()).and_then(|v| v.as_object());
     match entry {
         Some(obj) => {
-            let success = obj.get("success").and_then(|v| v.as_bool()).unwrap_or(false);
-            if !success {
-                return Json(ApiResponse::new(
-                    404,
-                    false,
-                    "App not found or invalid appid".to_string(),
-                    None,
-                    None,
-                    chrono::Utc::now().to_rfc3339(),
-                    Some("success == false".to_string()),
-                ));
+            // Check if app exists
+            if !obj.get("success").and_then(|v| v.as_bool()).unwrap_or(false) {
+                return Json(ApiResponse::new(404, false, "App not found or invalid appid".to_string(), None, None, chrono::Utc::now().to_rfc3339(), Some("success == false".to_string())));
             }
             let mut data = obj.get("data").cloned();
-            // Fetch the app HTML page for Steam Deck compatibility
+
+            // Fetch app HTML for extra info
             let app_url = format!("https://store.steampowered.com/app/{}", appid);
             let html_text = match reqwest::get(&app_url).await {
                 Ok(html_resp) => match html_resp.text().await {
@@ -184,34 +154,17 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                 },
                 Err(_) => String::new(),
             };
-            let mut resolved_category: Option<serde_json::Value> = None;
-            let mut category_key: Option<String> = None;
 
-            let mut positive_reviews: Option<u64> = None;
-            let mut total_reviews: Option<u64> = None;
-            if !html_text.is_empty() {
-                let document = scraper::Html::parse_document(&html_text);
-                let selector_pos = scraper::Selector::parse("input#review_summary_num_positive_reviews").unwrap();
-                let selector_total = scraper::Selector::parse("input#review_summary_num_reviews").unwrap();
-                if let Some(input) = document.select(&selector_pos).next() {
-                    if let Some(val) = input.value().attr("value") {
-                        if let Ok(num) = val.parse::<u64>() {
-                            positive_reviews = Some(num);
-                        }
-                    }
-                }
-                if let Some(input) = document.select(&selector_total).next() {
-                    if let Some(val) = input.value().attr("value") {
-                        if let Ok(num) = val.parse::<u64>() {
-                            total_reviews = Some(num);
-                        }
-                    }
-                }
-            }
-            if !html_text.is_empty() {
-                let document = scraper::Html::parse_document(&html_text);
-                let selector = scraper::Selector::parse("div#application_config").unwrap();
-                if let Some(div) = document.select(&selector).next() {
+            // Extract all HTML info before any await (for Send safety)
+            let (positive_reviews, total_reviews, resolved_category, category_key) = {
+                let document = Html::parse_document(&html_text);
+                // Extract review numbers
+                let positive_reviews = extract_input_value(&document, "review_summary_num_positive_reviews");
+                let total_reviews = extract_input_value(&document, "review_summary_num_reviews");
+                // Extract Steam Deck compatibility info
+                let mut resolved_category: Option<serde_json::Value> = None;
+                let mut category_key: Option<String> = None;
+                if let Some(div) = document.select(&Selector::parse("div#application_config").unwrap()).next() {
                     if let Some(deckcompat) = div.value().attr("data-deckcompatibility") {
                         if let Ok(deck_json) = serde_json::from_str::<serde_json::Value>(deckcompat) {
                             if let Some(cat) = deck_json.get("resolved_category") {
@@ -223,73 +176,36 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                                     }
                                 }
                             }
-                            let resolved_items = deck_json.get("resolved_items").cloned();
-                            let steamos_resolved_items = deck_json.get("steamos_resolved_items").cloned();
+                            // Transform compatibility items
+                            let resolved_items = deck_json.get("resolved_items");
+                            let steamos_resolved_items = deck_json.get("steamos_resolved_items");
                             if let Some(Value::Object(ref mut map)) = data {
                                 if let Some(items) = resolved_items {
-                                    // Transform steamdeck_compatibility_items
-                                    let transformed_items = match items {
-                                        serde_json::Value::Array(arr) => {
-                                            serde_json::Value::Array(
-                                                arr.into_iter().map(|mut item| {
-                                                    if let serde_json::Value::Object(ref mut obj) = item {
-                                                        if let Some(display_type) = obj.remove("display_type") {
-                                                            obj.insert("compatibility".to_string(), display_type);
-                                                        }
-                                                        if let Some(loc_token) = obj.remove("loc_token") {
-                                                            let token_str = loc_token.as_str().map(|s| s.trim_start_matches('#').to_string()).unwrap_or_default();
-                                                            obj.insert("token".to_string(), serde_json::Value::String(token_str));
-                                                        }
-                                                    }
-                                                    item
-                                                }).collect()
-                                            )
-                                        },
-                                        _ => items,
-                                    };
-                                    map.insert("steamdeck_compatibility_items".to_string(), transformed_items);
+                                    map.insert("steamdeck_compatibility_items".to_string(), transform_compat_items(items));
                                 }
                                 if let Some(items) = steamos_resolved_items {
-                                    // Transform steamos_resolved_items
-                                    let transformed_items = match items {
-                                        serde_json::Value::Array(arr) => {
-                                            serde_json::Value::Array(
-                                                arr.into_iter().map(|mut item| {
-                                                    if let serde_json::Value::Object(ref mut obj) = item {
-                                                        if let Some(display_type) = obj.remove("display_type") {
-                                                            obj.insert("compatibility".to_string(), display_type);
-                                                        }
-                                                        if let Some(loc_token) = obj.remove("loc_token") {
-                                                            let token_str = loc_token.as_str().map(|s| s.trim_start_matches('#').to_string()).unwrap_or_default();
-                                                            obj.insert("token".to_string(), serde_json::Value::String(token_str));
-                                                        }
-                                                    }
-                                                    item
-                                                }).collect()
-                                            )
-                                        },
-                                        _ => items,
-                                    };
-                                    map.insert("steamos_resolved_items".to_string(), transformed_items);
+                                    map.insert("steamos_resolved_items".to_string(), transform_compat_items(items));
                                 }
                             }
                         }
                     }
                 }
-            }
+                (positive_reviews, total_reviews, resolved_category, category_key)
+            };
+
+            // Build response JSON
             if let Some(Value::Object(ref mut map)) = data {
-                let cover_url = format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", appid);
-                map.insert("cover_image".to_string(), Value::String(cover_url));
+                map.insert("cover_image".to_string(), Value::String(format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", appid)));
                 if let (Some(pos), Some(total)) = (positive_reviews, total_reviews) {
-                    map.insert("positive_reviews".to_string(), serde_json::Value::Number(pos.into()));
-                    map.insert("total_reviews".to_string(), serde_json::Value::Number(total.into()));
+                    map.insert("positive_reviews".to_string(), Value::Number(pos.into()));
+                    map.insert("total_reviews".to_string(), Value::Number(total.into()));
                     let percentage = if total > 0 {
                         let pct = (pos as f64) * 100.0 / (total as f64);
                         format!("{:.2}", pct)
                     } else {
                         "0.00".to_string()
                     };
-                    map.insert("positive_reviews_percentage".to_string(), serde_json::Value::String(percentage));
+                    map.insert("positive_reviews_percentage".to_string(), Value::String(percentage));
                 }
                 if let Some(cat) = resolved_category {
                     map.insert("steamdeck_compatibility".to_string(), cat.clone());
@@ -309,26 +225,16 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                                                     map.insert("steamdeck_category".to_string(), Value::String(label_str.to_string()));
                                                 }
                                             }
-                                            if let Some(Value::Array(items)) = map.get_mut("steamdeck_compatibility_items") {
-                                                for item in items.iter_mut() {
-                                                    if let Value::Object(obj) = item {
-                                                        if let Some(Value::String(token)) = obj.get("token") {
-                                                            if let Some(label_val) = shared_json.get(token) {
-                                                                if let Some(label_str) = label_val.as_str() {
-                                                                    obj.insert("label".to_string(), Value::String(label_str.to_string()));
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            if let Some(Value::Array(items)) = map.get_mut("steamos_resolved_items") {
-                                                for item in items.iter_mut() {
-                                                    if let Value::Object(obj) = item {
-                                                        if let Some(Value::String(token)) = obj.get("token") {
-                                                            if let Some(label_val) = shared_json.get(token) {
-                                                                if let Some(label_str) = label_val.as_str() {
-                                                                    obj.insert("label".to_string(), Value::String(label_str.to_string()));
+                                            // Add labels to compatibility items
+                                            for key in ["steamdeck_compatibility_items", "steamos_resolved_items"] {
+                                                if let Some(Value::Array(items)) = map.get_mut(key) {
+                                                    for item in items.iter_mut() {
+                                                        if let Value::Object(obj) = item {
+                                                            if let Some(Value::String(token)) = obj.get("token") {
+                                                                if let Some(label_val) = shared_json.get(token) {
+                                                                    if let Some(label_str) = label_val.as_str() {
+                                                                        obj.insert("label".to_string(), Value::String(label_str.to_string()));
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -344,25 +250,9 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                 }
             }
             let size = Some(1);
-            Json(ApiResponse::new(
-                200,
-                true,
-                "OK".to_string(),
-                size,
-                data,
-                chrono::Utc::now().to_rfc3339(),
-                None,
-            ))
+            Json(ApiResponse::new(200, true, "OK".to_string(), size, data, chrono::Utc::now().to_rfc3339(), None))
         }
-        None => Json(ApiResponse::new(
-            500,
-            false,
-            "Malformed response from Steam".to_string(),
-            None,
-            None,
-            chrono::Utc::now().to_rfc3339(),
-            Some("appid entry missing".to_string()),
-        )),
+        None => Json(ApiResponse::new(500, false, "Malformed response from Steam".to_string(), None, None, chrono::Utc::now().to_rfc3339(), Some("appid entry missing".to_string()))),
     }
 }
 
