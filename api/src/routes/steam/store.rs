@@ -201,6 +201,56 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                                     }
                                 }
                             }
+                            let resolved_items = deck_json.get("resolved_items").cloned();
+                            let steamos_resolved_items = deck_json.get("steamos_resolved_items").cloned();
+                            if let Some(Value::Object(ref mut map)) = data {
+                                if let Some(items) = resolved_items {
+                                    // Transform steamdeck_compatibility_items
+                                    let transformed_items = match items {
+                                        serde_json::Value::Array(arr) => {
+                                            serde_json::Value::Array(
+                                                arr.into_iter().map(|mut item| {
+                                                    if let serde_json::Value::Object(ref mut obj) = item {
+                                                        if let Some(display_type) = obj.remove("display_type") {
+                                                            obj.insert("compatibility".to_string(), display_type);
+                                                        }
+                                                        if let Some(loc_token) = obj.remove("loc_token") {
+                                                            let token_str = loc_token.as_str().map(|s| s.trim_start_matches('#').to_string()).unwrap_or_default();
+                                                            obj.insert("token".to_string(), serde_json::Value::String(token_str));
+                                                        }
+                                                    }
+                                                    item
+                                                }).collect()
+                                            )
+                                        },
+                                        _ => items,
+                                    };
+                                    map.insert("steamdeck_compatibility_items".to_string(), transformed_items);
+                                }
+                                if let Some(items) = steamos_resolved_items {
+                                    // Transform steamos_resolved_items
+                                    let transformed_items = match items {
+                                        serde_json::Value::Array(arr) => {
+                                            serde_json::Value::Array(
+                                                arr.into_iter().map(|mut item| {
+                                                    if let serde_json::Value::Object(ref mut obj) = item {
+                                                        if let Some(display_type) = obj.remove("display_type") {
+                                                            obj.insert("compatibility".to_string(), display_type);
+                                                        }
+                                                        if let Some(loc_token) = obj.remove("loc_token") {
+                                                            let token_str = loc_token.as_str().map(|s| s.trim_start_matches('#').to_string()).unwrap_or_default();
+                                                            obj.insert("token".to_string(), serde_json::Value::String(token_str));
+                                                        }
+                                                    }
+                                                    item
+                                                }).collect()
+                                            )
+                                        },
+                                        _ => items,
+                                    };
+                                    map.insert("steamos_resolved_items".to_string(), transformed_items);
+                                }
+                            }
                         }
                     }
                 }
