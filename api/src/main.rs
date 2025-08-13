@@ -10,6 +10,7 @@ mod routes {
 
 use routes::steam::market::all_routes as market_routes;
 use routes::steam::store::all_routes as store_routes;
+use rocket::Config;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -18,10 +19,20 @@ fn index() -> &'static str {
 
 #[launch]
 fn rocket() -> _ {
+    let port: u16 = std::env::var("PORT")
+        .unwrap_or_else(|_| "8000".into())
+        .parse()
+        .expect("PORT must be a number");
+
+    let config = Config {
+        address: "0.0.0.0".parse().unwrap(),
+        port,
+        ..Config::default()
+    };
+
     rocket::build()
+        .configure(config)
         .mount("/", routes![index])
         .mount("/api/steam/market", market_routes())
         .mount("/api/steam/", store_routes())
 }
-
-
