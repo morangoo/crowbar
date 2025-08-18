@@ -293,8 +293,28 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                 }
                 // Insert current_players (null if not found)
                 map.insert("current_players".to_string(), current_players.unwrap_or(Value::Null));
-                // Insert app_categories (features)
-                map.insert("app_categories".to_string(), Value::Array(app_categories));
+
+                // Enrich app_categories with description from categories
+                let mut enriched_categories = app_categories;
+                if let Some(Value::Array(categories)) = map.get("categories") {
+                    for cat_obj in &mut enriched_categories {
+                        if let Value::Object(ref mut obj) = cat_obj {
+                            if let Some(Value::Number(cat_id)) = obj.get("category") {
+                                if let Some(id) = cat_id.as_u64() {
+                                    if let Some(Value::Object(api_cat)) = categories.iter().find(|c| c.get("id").and_then(|v| v.as_u64()) == Some(id)) {
+                                        if let Some(Value::String(desc)) = api_cat.get("description") {
+                                            obj.insert("description".to_string(), Value::String(desc.clone()));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                map.insert("app_categories".to_string(), Value::Array(enriched_categories));
+                // Remove categories from response
+                map.remove("categories");
+
                 // Insert app_tags
                 map.insert("app_tags".to_string(), Value::Array(app_tags));
                 if let Some(cat) = resolved_category {
