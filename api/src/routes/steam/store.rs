@@ -3,7 +3,6 @@ use crate::response::ApiResponse;
 use rocket::{get, Route};
 use serde_json::Value;
 use scraper::{Html, Selector};
-use regex;
 // Helper: Extract value from input element by id
 fn extract_input_value(document: &Html, id: &str) -> Option<u64> {
     let selector = Selector::parse(&format!("input#{}", id)).ok()?;
@@ -202,36 +201,14 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                 (positive_reviews, total_reviews, resolved_category, category_key)
             };
 
-            // Fetch current_players from Steam Community with agecheck cookies
-            let community_url = format!("https://steamcommunity.com/app/{}", appid);
-            let client = reqwest::Client::new();
-            let current_players = match client
-                .get(&community_url)
-                .header(
-                    reqwest::header::COOKIE,
-                    "wants_mature_content=1; lastagecheckage=1-January-2000; birthtime=946684801"
-                )
-                .send()
-                .await {
-                Ok(resp) => match resp.text().await {
-                    Ok(html) => {
-                        // Use regex to extract number from <span class="apphub_NumInApp">
-                        let re = regex::Regex::new(r#"<span class=\"apphub_NumInApp\">([\d][\d.,]{3,})"#).unwrap();
-                        if let Some(caps) = re.captures(&html) {
-                            if let Some(num_str) = caps.get(1) {
-                                let clean = num_str.as_str().replace([',','.'], "");
-                                if let Ok(num) = clean.parse::<u64>() {
-                                    Some(Value::Number(num.into()))
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    }
+            // Fetch current_players from Steam API endpoint
+            let stats_url = format!("https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid={}", appid);
+            let current_players = match reqwest::get(&stats_url).await {
+                Ok(resp) => match resp.json::<serde_json::Value>().await {
+                    Ok(json) => json.get("response")
+                        .and_then(|r| r.get("player_count"))
+                        .and_then(|v| v.as_u64())
+                        .map(|num| Value::Number(num.into())),
                     Err(_) => None,
                 },
                 Err(_) => None,
