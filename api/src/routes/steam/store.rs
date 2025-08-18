@@ -146,9 +146,17 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
             }
             let mut data = obj.get("data").cloned();
 
-            // Fetch app HTML for extra info
+            // Fetch app HTML for extra info, bypassing agecheck with cookies
             let app_url = format!("https://store.steampowered.com/app/{}", appid);
-            let html_text = match reqwest::get(&app_url).await {
+            let client = reqwest::Client::new();
+            let html_text = match client
+                .get(&app_url)
+                .header(
+                    reqwest::header::COOKIE,
+                    "wants_mature_content=1; lastagecheckage=1-January-2000; birthtime=946684801"
+                )
+                .send()
+                .await {
                 Ok(html_resp) => match html_resp.text().await {
                     Ok(t) => t,
                     Err(_) => String::new(),
@@ -194,9 +202,17 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                 (positive_reviews, total_reviews, resolved_category, category_key)
             };
 
-            // Fetch current_players from Steam Community
+            // Fetch current_players from Steam Community with agecheck cookies
             let community_url = format!("https://steamcommunity.com/app/{}", appid);
-            let current_players = match reqwest::get(&community_url).await {
+            let client = reqwest::Client::new();
+            let current_players = match client
+                .get(&community_url)
+                .header(
+                    reqwest::header::COOKIE,
+                    "wants_mature_content=1; lastagecheckage=1-January-2000; birthtime=946684801"
+                )
+                .send()
+                .await {
                 Ok(resp) => match resp.text().await {
                     Ok(html) => {
                         // Use regex to extract number from <span class="apphub_NumInApp">
