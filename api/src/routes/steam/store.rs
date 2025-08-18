@@ -164,7 +164,7 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
             };
 
             // Extract all HTML info before any await (for Send safety)
-            let (positive_reviews, total_reviews, resolved_category, category_key) = {
+            let (positive_reviews, total_reviews, resolved_category, category_key, app_categories, app_tags) = {
                 let document = Html::parse_document(&html_text);
                 // Extract review numbers
                 let positive_reviews = extract_input_value(&document, "review_summary_num_positive_reviews");
@@ -198,7 +198,70 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                         }
                     }
                 }
-                (positive_reviews, total_reviews, resolved_category, category_key)
+
+                // Extract app categories/features
+                let mut app_categories = Vec::new();
+                if let Some(category_block) = document.select(&Selector::parse("div#category_block").unwrap()).next() {
+                    let feature_list_selector = Selector::parse("div.game_area_features_list_ctn a.game_area_details_specs_ctn").unwrap();
+                    for a in category_block.select(&feature_list_selector) {
+                        let icon = a.select(&Selector::parse("img.category_icon").unwrap())
+                            .next()
+                            .and_then(|img| img.value().attr("src"))
+                            .map(|s| Value::String(s.to_string()))
+                            .unwrap_or(Value::Null);
+                        let href = a.value().attr("href").unwrap_or("");
+                        let category = href.split("category2=").nth(1)
+                            .and_then(|s| s.split('&').next())
+                            .and_then(|s| s.parse::<u64>().ok())
+                            .map(|n| Value::Number(n.into()))
+                            .unwrap_or(Value::Null);
+                        let label = a.select(&Selector::parse("div.label").unwrap())
+                            .next()
+                            .map(|l| Value::String(l.text().collect::<String>()))
+                            .unwrap_or(Value::Null);
+                        let mut obj = serde_json::Map::new();
+                        obj.insert("icon".to_string(), icon);
+                        obj.insert("category".to_string(), category);
+                        obj.insert("label".to_string(), label);
+                        app_categories.push(Value::Object(obj));
+                    }
+                }
+
+                // Extract app tags from embedded JS
+                let mut app_tags = Vec::new();
+                if let Some(js_start) = html_text.find("InitAppTagModal(") {
+                    let js_sub = &html_text[js_start..];
+                    // Find the first '[' and the matching ']' for the tags array
+                    if let Some(arr_start) = js_sub.find('[') {
+                        let mut depth = 0;
+                        let mut arr_end = None;
+                        for (i, c) in js_sub[arr_start..].char_indices() {
+                            match c {
+                                '[' => depth += 1,
+                                ']' => {
+                                    depth -= 1;
+                                    if depth == 0 {
+                                        arr_end = Some(arr_start + i + 1);
+                                        break;
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        if let Some(arr_end) = arr_end {
+                            let arr_str = &js_sub[arr_start..arr_end];
+                            if let Ok(tags_json) = serde_json::from_str::<serde_json::Value>(arr_str) {
+                                if let Value::Array(tags) = tags_json {
+                                    for tag in tags {
+                                        app_tags.push(tag);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                (positive_reviews, total_reviews, resolved_category, category_key, app_categories, app_tags)
             };
 
             // Fetch current_players from Steam API endpoint
@@ -230,6 +293,10 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                 }
                 // Insert current_players (null if not found)
                 map.insert("current_players".to_string(), current_players.unwrap_or(Value::Null));
+                // Insert app_categories (features)
+                map.insert("app_categories".to_string(), Value::Array(app_categories));
+                // Insert app_tags
+                map.insert("app_tags".to_string(), Value::Array(app_tags));
                 if let Some(cat) = resolved_category {
                     map.insert("steamdeck_compatibility".to_string(), cat.clone());
                     if let Some(category_key) = category_key {
