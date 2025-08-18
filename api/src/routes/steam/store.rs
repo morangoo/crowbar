@@ -3,6 +3,7 @@ use crate::response::ApiResponse;
 use rocket::{get, Route};
 use serde_json::Value;
 use scraper::{Html, Selector};
+use regex;
 // Helper: Extract value from input element by id
 fn extract_input_value(document: &Html, id: &str) -> Option<u64> {
     let selector = Selector::parse(&format!("input#{}", id)).ok()?;
@@ -193,6 +194,33 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                 (positive_reviews, total_reviews, resolved_category, category_key)
             };
 
+            // Fetch current_players from Steam Community
+            let community_url = format!("https://steamcommunity.com/app/{}", appid);
+            let current_players = match reqwest::get(&community_url).await {
+                Ok(resp) => match resp.text().await {
+                    Ok(html) => {
+                        // Use regex to extract number from <span class="apphub_NumInApp">
+                        let re = regex::Regex::new(r#"<span class=\"apphub_NumInApp\">([\d][\d.,]{3,})"#).unwrap();
+                        if let Some(caps) = re.captures(&html) {
+                            if let Some(num_str) = caps.get(1) {
+                                let clean = num_str.as_str().replace([',','.'], "");
+                                if let Ok(num) = clean.parse::<u64>() {
+                                    Some(Value::Number(num.into()))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                    Err(_) => None,
+                },
+                Err(_) => None,
+            };
+
             // Build response JSON
             if let Some(Value::Object(ref mut map)) = data {
                 map.insert("cover_image".to_string(), Value::String(format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", appid)));
@@ -207,6 +235,8 @@ pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Js
                     };
                     map.insert("positive_reviews_percentage".to_string(), Value::String(percentage));
                 }
+                // Insert current_players (null if not found)
+                map.insert("current_players".to_string(), current_players.unwrap_or(Value::Null));
                 if let Some(cat) = resolved_category {
                     map.insert("steamdeck_compatibility".to_string(), cat.clone());
                     if let Some(category_key) = category_key {
