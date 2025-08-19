@@ -1,6 +1,6 @@
-use rocket::serde::json::Json;
+use rocket::serde::{json::Json, Deserialize};
 use crate::response::ApiResponse;
-use rocket::{get, Route};
+use rocket::{get, Route, post};
 use serde_json::Value;
 use scraper::{Html, Selector};
 // Helper: Extract value from input element by id
@@ -30,14 +30,24 @@ fn transform_compat_items(items: &Value) -> Value {
     }
 }
 
-#[get("/apps?<query>&<page>&<count>&<cc>&<language>")]
-pub async fn apps(
-    query: Option<String>,
-    page: Option<u32>,
-    count: Option<u32>,
-    cc: Option<String>,
-    language: Option<String>
-) -> Json<ApiResponse<Value>> {
+#[derive(Deserialize)]
+pub struct AppsRequest {
+    pub query: Option<String>,
+    pub page: Option<u32>,
+    pub count: Option<u32>,
+    pub cc: Option<String>,
+    pub language: Option<String>,
+    pub tags: Option<Vec<u32>>,
+}
+
+#[post("/apps", data = "<body>")]
+pub async fn apps(body: Json<AppsRequest>) -> Json<ApiResponse<Value>> {
+    let query = body.query.clone();
+    let page = body.page;
+    let count = body.count;
+    let cc = body.cc.clone();
+    let language = body.language.clone();
+    let tags = body.tags.clone();
     // Build Steam search URL
     let mut url = String::from("https://store.steampowered.com/search/results/?norender=1&ignore_preferences=1");
     if let Some(q) = query {
@@ -50,6 +60,12 @@ pub async fn apps(
     }
     if let Some(ref lang) = language {
         url.push_str(&format!("&l={}", urlencoding::encode(lang)));
+    }
+    if let Some(ref tag_list) = tags {
+        if !tag_list.is_empty() {
+            let tags_param = tag_list.iter().map(|t| t.to_string()).collect::<Vec<_>>().join("%2C");
+            url.push_str(&format!("&tags={}", tags_param));
+        }
     }
     // Fetch search results HTML with cookies to bypass agecheck
     let client = reqwest::Client::new();
@@ -114,6 +130,7 @@ pub async fn apps(
         }
         results.push(Value::Object(obj));
     }
+
     let size = Some(results.len() as u64);
     Json(ApiResponse::new(
         200,
