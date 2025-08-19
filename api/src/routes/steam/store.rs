@@ -39,7 +39,7 @@ pub async fn apps(
     language: Option<String>
 ) -> Json<ApiResponse<Value>> {
     // Build Steam search URL
-    let mut url = String::from("https://store.steampowered.com/search/results/?norender=1");
+    let mut url = String::from("https://store.steampowered.com/search/results/?norender=1&ignore_preferences=1");
     if let Some(q) = query {
         url.push_str(&format!("&term={}", urlencoding::encode(&q)));
     }
@@ -51,8 +51,16 @@ pub async fn apps(
     if let Some(ref lang) = language {
         url.push_str(&format!("&l={}", urlencoding::encode(lang)));
     }
-    // Fetch search results HTML
-    let resp = match reqwest::get(&url).await {
+    // Fetch search results HTML with cookies to bypass agecheck
+    let client = reqwest::Client::new();
+    let resp = match client
+        .get(&url)
+        .header(
+            reqwest::header::COOKIE,
+            "wants_mature_content=1; lastagecheckage=1-January-2000; birthtime=946684801"
+        )
+        .send()
+        .await {
         Ok(r) => r,
         Err(e) => return Json(ApiResponse::new(500, false, "Error making request".to_string(), None, None, chrono::Utc::now().to_rfc3339(), Some(e.to_string()))),
     };
