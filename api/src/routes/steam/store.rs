@@ -94,6 +94,8 @@ pub async fn apps(body: Json<AppsRequest>) -> Json<ApiResponse<Value>> {
         if let Some(appid) = game.value().attr("data-ds-appid").and_then(|v| v.parse::<u32>().ok()) {
             obj.insert("appid".to_string(), Value::Number(appid.into()));
             obj.insert("img_large".to_string(), Value::String(format!("https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/{}/header.jpg", appid)));
+           // Add cover field
+           obj.insert("cover".to_string(), Value::String(format!("https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg", appid)));
         }
         obj.insert("title".to_string(), game.select(&Selector::parse("span.title").unwrap()).next().map(|e| e.text().collect::<String>()).unwrap_or_default().into());
         obj.insert("url".to_string(), game.value().attr("href").map(|s| Value::String(s.to_string())).unwrap_or(Value::Null));
