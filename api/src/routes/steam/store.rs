@@ -102,9 +102,38 @@ pub async fn apps(body: Json<AppsRequest>) -> Json<ApiResponse<Value>> {
         obj.insert("img".to_string(), game.select(&Selector::parse(".search_capsule img").unwrap()).next().and_then(|e| e.value().attr("src")).map(|s| Value::String(s.to_string())).unwrap_or(Value::Null));
         // Price and discount
         let price_final = game.select(&Selector::parse(".discount_final_price").unwrap()).next().map(|e| e.text().collect::<String>());
-        let price_original = game.select(&Selector::parse(".discount_original_price").unwrap()).next().map(|e| e.text().collect::<String>());
+        let mut price_original = game.select(&Selector::parse(".discount_original_price").unwrap()).next().map(|e| e.text().collect::<String>());
+        // If price_original is None, fallback to price_final
+        if price_original.is_none() {
+            price_original = price_final.clone();
+        }
         obj.insert("price_final".to_string(), price_final.clone().map(Value::String).unwrap_or(Value::Null));
         obj.insert("price_original".to_string(), price_original.clone().map(Value::String).unwrap_or(Value::Null));
+        // Helper to extract numeric value from price string (only digits)
+        fn extract_price_num(price: &str) -> Option<u64> {
+            let digits: String = price.chars().filter(|c| c.is_ascii_digit()).collect();
+            if digits.is_empty() {
+                None
+            } else {
+                digits.parse::<u64>().ok()
+            }
+        }
+
+        // Add price_final_num
+        if let Some(ref pf) = price_final {
+            if let Some(num) = extract_price_num(pf) {
+                obj.insert("price_final_num".to_string(), Value::Number(num.into()));
+            }
+        }
+        // Add price_original_num
+        match &price_original {
+            Some(po) => {
+                if let Some(num) = extract_price_num(po) {
+                    obj.insert("price_original_num".to_string(), Value::Number(num.into()));
+                }
+            },
+            None => {}
+        }
         let discount_pct = game.select(&Selector::parse(".discount_pct").unwrap()).next().map(|e| e.text().collect::<String>());
         let discount_value = discount_pct.as_ref().and_then(|d| d.strip_prefix('-').and_then(|s| s.strip_suffix('%')).and_then(|s| s.parse::<u32>().ok())).unwrap_or(0);
         obj.insert("discount_pct".to_string(), Value::String(discount_pct.clone().unwrap_or("0%".to_string())));
