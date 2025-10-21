@@ -1,6 +1,9 @@
 #[macro_use] extern crate rocket;
 mod response;
 pub mod maps;
+
+mod services;
+
 mod routes {
     pub mod steam {
         pub mod market;
