@@ -4,6 +4,8 @@ pub mod maps;
 
 mod services;
 
+pub mod utils;
+
 mod routes {
     pub mod steam {
         pub mod market;
