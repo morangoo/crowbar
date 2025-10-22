@@ -6,6 +6,8 @@ use serde_json::Value;
 use crate::services::steam as steam_services;
 use crate::utils::cache::build_cache_key;
 use crate::utils::redis::get_redis_conn_async;
+use crate::utils::rate_limit::RateLimitGuard;
+use rocket_governor::RocketGovernor;
 use redis::AsyncCommands;
 
 #[derive(Deserialize, Serialize)]
@@ -19,7 +21,7 @@ pub struct AppsRequest {
 }
 
 #[post("/apps", data = "<body>")]
-pub async fn apps(body: Json<AppsRequest>) -> Json<ApiResponse<Value>> {
+pub async fn apps(_limitguard: RocketGovernor<'_, RateLimitGuard>, body: Json<AppsRequest>) -> Json<ApiResponse<Value>> {
 
     let cache_key = build_cache_key("apps_cache", &body.0);
 
@@ -54,7 +56,7 @@ pub async fn apps(body: Json<AppsRequest>) -> Json<ApiResponse<Value>> {
 }
 
 #[get("/app/<appid>?<language>&<cc>")]
-pub async fn app(appid: u32, language: Option<String>, cc: Option<String>) -> Json<ApiResponse<Value>> {
+pub async fn app(_limitguard: RocketGovernor<'_, RateLimitGuard>, appid: u32, language: Option<String>, cc: Option<String>) -> Json<ApiResponse<Value>> {
 
     let key_input = (appid, language.clone(), cc.clone());
     let cache_key = build_cache_key("app_cache", &key_input);

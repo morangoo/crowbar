@@ -6,6 +6,8 @@ use serde_json::Value;
 use crate::services::steam::market as market_services;
 use crate::utils::cache::build_cache_key;
 use crate::utils::redis::get_redis_conn_async;
+use crate::utils::rate_limit::RateLimitGuard;
+use rocket_governor::RocketGovernor;
 use redis::AsyncCommands;
 use serde::Serialize;
 
@@ -19,6 +21,7 @@ struct SearchParams {
 
 #[get("/search?<appid>&<query>&<sort>&<page>")]
 pub async fn search(
+    _limitguard: RocketGovernor<'_, RateLimitGuard>,
     appid: Option<String>,
     query: Option<String>,
     sort: Option<String>,
@@ -87,7 +90,7 @@ struct ItemParams<'a> {
 }
 
 #[get("/item/<appid>?<hashname>")]
-pub async fn item(appid: Option<&str>, hashname: Option<&str>) -> Json<ApiResponse<Value>> {
+pub async fn item(_limitguard: RocketGovernor<'_, RateLimitGuard>, appid: Option<&str>, hashname: Option<&str>) -> Json<ApiResponse<Value>> {
     let appid = appid.unwrap_or("");
     let marketname = hashname.unwrap_or("");
 

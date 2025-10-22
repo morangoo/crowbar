@@ -16,10 +16,13 @@ mod routes {
 use routes::steam::market::all_routes as market_routes;
 use routes::steam::store::all_routes as store_routes;
 use rocket::Config;
+use rocket::http::Status;
+use rocket_governor::RocketGovernor;
+use crate::utils::rate_limit::RateLimitGuard;
 
 #[get("/")]
-fn index() -> &'static str {
-    "Hello World"
+fn index(_limitguard: RocketGovernor<RateLimitGuard>) -> Status {
+    Status::Ok
 }
 
 #[launch]
