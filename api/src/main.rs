@@ -1,6 +1,7 @@
 #[macro_use] extern crate rocket;
 mod response;
 pub mod maps;
+mod catchers;
 
 mod services;
 
@@ -43,4 +44,5 @@ fn rocket() -> _ {
         .mount("/", routes![index])
         .mount("/api/steam/market", market_routes())
         .mount("/api/steam/", store_routes())
+        .register("/", catchers::all_catchers())
 }
